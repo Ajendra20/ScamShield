@@ -1,0 +1,259 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Analysis Dashboard | ScamShield</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+    <!-- Header and Navigation -->
+    <header>
+        <h1>🛡️ ScamShield</h1>
+        <p>Payment Risk Analysis Dashboard</p>
+
+        <nav>
+            <a href="/">Home</a>
+            <a href="/analysis" class="active">Analysis</a>
+            <a href="/dataset">Dataset</a>
+            <a href="/report">Report a Scam</a>
+            <a href="/about">About</a>
+        </nav>
+    </header>
+
+    <main class="container">
+
+        <section class="payment-card">
+
+            <h2>Dashboard Overview</h2>
+
+            <p class="description">
+                Explore the sample database and understand
+                how ScamShield evaluates payment risks.
+            </p>
+
+            <!-- Dashboard Statistics -->
+            <div class="stats">
+
+                <div class="stat-card">
+                    <h3>{{ total_records }}</h3>
+                    <p>Demo Identifiers</p>
+                </div>
+
+                <div class="stat-card">
+                    <h3>₹25,000</h3>
+                    <p>Review Threshold</p>
+                </div>
+
+                <div class="stat-card">
+                    <h3>{{ total_checks }}</h3>
+                    <p>Total Payment Checks</p>
+                </div>
+
+            </div>
+
+            <!-- Payment Evaluation Chart -->
+            <h3 class="section-title">
+                Payment Evaluation Rules
+            </h3>
+
+            <p class="description">
+                This chart illustrates the priority of the
+                demonstration rules. It does not represent
+                real fraud statistics or detection accuracy.
+            </p>
+
+            <div class="chart-card">
+                <canvas id="rulesChart"></canvas>
+            </div>
+
+            <!-- Explanation of Rules -->
+            <h3 class="section-title">
+                How ScamShield Checks Payments
+            </h3>
+
+            <div class="analysis-item">
+                <h3>🔴 Known Demo Identifier</h3>
+                <p>
+                    If the receiver matches a synthetic
+                    identifier in the local SQLite database,
+                    ScamShield flags it for this demonstration.
+                </p>
+            </div>
+
+            <div class="analysis-item">
+                <h3>🟡 Amount Review</h3>
+                <p>
+                    If no identifier match exists and the
+                    amount is ₹25,000 or more, the system
+                    recommends independently verifying
+                    the receiver before paying.
+                </p>
+            </div>
+
+            <div class="analysis-item">
+                <h3>🟢 No Known Demo Match</h3>
+                <p>
+                    If neither rule triggers, the system
+                    reports no known demo match. This does
+                    not guarantee that the receiver is safe.
+                </p>
+            </div>
+
+            <!-- Recent Payment Checks Table -->
+            <h3 class="section-title">
+                Recent Payment Checks
+            </h3>
+
+            <p class="description">
+                The table displays the latest 10 payment
+                checks saved in the local database.
+            </p>
+
+            <div class="table-wrapper">
+
+                <table class="data-table">
+
+                    <thead>
+                        <tr>
+                            <th>Receiver ID</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Result</th>
+                            <th>Date &amp; Time</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for check in recent_checks %}
+
+                        <tr>
+                            <td>{{ check[0] }}</td>
+
+                            <td>
+                                ₹{{ "%.2f"|format(check[1]) }}
+                            </td>
+
+                            <td>{{ check[2] }}</td>
+
+                            <td>{{ check[3] }}</td>
+
+                            <td>{{ check[4] }}</td>
+                        </tr>
+
+                        {% else %}
+
+                        <tr>
+                            <td colspan="5">
+                                No payment checks recorded yet.
+                                Make a test payment check on
+                                the Home page to see it here.
+                            </td>
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            <!-- Important Notice -->
+            <p class="notice">
+                <strong>Demonstration notice:</strong>
+                ScamShield currently uses synthetic test
+                identifiers and a fixed amount threshold.
+                It does not use a trained machine-learning
+                model or verified real-world scam reports.
+                A result showing no known demo match does
+                not mean a payment is safe.
+            </p>
+
+        </section>
+
+    </main>
+
+    <footer>
+        ScamShield — Student Project Demonstration
+    </footer>
+
+    <!-- Chart.js -->
+    <script>
+        const chartCanvas =
+            document.getElementById("rulesChart");
+
+        new Chart(chartCanvas, {
+            type: "bar",
+
+            data: {
+                labels: [
+                    "Identifier Match",
+                    "Amount Review",
+                    "No Demo Match"
+                ],
+
+                datasets: [{
+                    label: "Illustrative Rule Priority",
+                    data: [3, 2, 1],
+
+                    backgroundColor: [
+                        "#dc6262",
+                        "#d97706",
+                        "#0e7490"
+                    ],
+
+                    borderRadius: 8,
+                    maxBarThickness: 65
+                }]
+            },
+
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return "Rule priority: " +
+                                    context.raw;
+                            }
+                        }
+                    }
+                },
+
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 3,
+
+                        ticks: {
+                            stepSize: 1
+                        },
+
+                        title: {
+                            display: true,
+                            text: "Illustrative Rule Priority"
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+scamshield.db
+scamshield (1).db
+.env

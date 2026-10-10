@@ -1,0 +1,66 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report a Scam | ScamShield</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<header>
+    <h1>🛡️ ScamShield</h1>
+    <p>Report suspicious payment identifiers</p>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/analysis">Analysis</a>
+        <a href="/dataset">Dataset</a>
+        <a href="/report">Report a Scam</a>
+        <a href="/about">About</a>
+    </nav>
+</header>
+
+<main class="container">
+    <section class="payment-card">
+        <h2>Report a Suspicious ID</h2>
+        <p>Submit details for review. A report is not proof of fraud.</p>
+
+        {% if message %}
+            <div class="result {{ 'safe' if success else 'error' }}">
+                {{ message }}
+            </div>
+        {% endif %}
+
+        <form method="POST">
+            <label for="identifier">Suspicious UPI ID or identifier</label>
+            <input
+                type="text"
+                id="identifier"
+                name="identifier"
+                maxlength="200"
+                placeholder="e.g. suspicious@upi"
+                required
+            >
+
+            <label for="reason">Why are you reporting it?</label>
+            <textarea
+                id="reason"
+                name="reason"
+                maxlength="1000"
+                rows="5"
+                placeholder="Describe what happened. Do not include passwords, PINs, or OTPs."
+                required
+            ></textarea>
+
+            <button type="submit">Submit Report</button>
+        </form>
+
+        <p class="notice">
+            Reports are stored locally for this demonstration and are not automatically verified.
+        </p>
+    </section>
+</main>
+
+</body>
+</html>

@@ -1,0 +1,141 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>ScamShield | Payment Risk Checker</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header>
+        <h1>🛡️ ScamShield</h1>
+        <p>Check payment risks before you pay</p>
+
+        <nav>
+            <a href="/" class="active">Home</a>
+            <a href="/analysis">Analysis</a>
+            <a href="/dataset">Dataset</a>
+            <a href="/report">Report a Scam</a>
+            <a href="/about">About</a>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+
+        <section class="payment-card">
+
+            <h2>Check a Payment</h2>
+
+            <p class="description">
+                Enter the details you know to check for known
+                demonstration scam identifiers and payment risks.
+            </p>
+
+            <!-- Payment Form -->
+            <form method="POST" action="/">
+
+                <label for="receiver">
+                    Receiver UPI ID or identifier
+                </label>
+
+                <input
+                    type="text"
+                    id="receiver"
+                    name="receiver"
+                    placeholder="e.g. example@upi"
+                    required
+                    autocomplete="off"
+                >
+
+                <label for="amount">
+                    Payment Amount (₹)
+                </label>
+
+                <input
+                    type="number"
+                    id="amount"
+                    name="amount"
+                    placeholder="Enter amount"
+                    min="0.01"
+                    step="0.01"
+                    required
+                >
+
+                <label for="method">
+                    Payment Method
+                </label>
+
+                <select id="method" name="method" required>
+                    <option value="UPI">UPI</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Wallet">Digital Wallet</option>
+                    <option value="Other">Other</option>
+                </select>
+
+                <button type="submit">
+                    Check Payment Risk
+                </button>
+
+            </form>
+
+            <!-- Payment Result -->
+            {% if result %}
+
+            <div class="result {{ result.level }}">
+
+                <h3>{{ result.title }}</h3>
+
+                <p>{{ result.message }}</p>
+
+                {% if result.receiver %}
+                <p>
+                    <strong>Receiver:</strong>
+                    {{ result.receiver }}
+                </p>
+                {% endif %}
+
+                {% if result.amount %}
+                <p>
+                    <strong>Amount:</strong>
+                    {{ result.amount }}
+                </p>
+                {% endif %}
+
+                {% if result.method %}
+                <p>
+                    <strong>Method:</strong>
+                    {{ result.method }}
+                </p>
+                {% endif %}
+
+            </div>
+
+            {% endif %}
+
+            <!-- Safety Notice -->
+            <p class="notice">
+                ⚠️ This is a demonstration project.
+                A result does not guarantee that a payment
+                is safe or fraudulent. Always verify the
+                receiver independently before paying.
+            </p>
+
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        ScamShield — Student Project Demonstration
+    </footer>
+
+</body>
+</html>

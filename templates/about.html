@@ -1,0 +1,75 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About | ScamShield</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>ScamShield</h1>
+        <p>About Our Project</p>
+        <nav>
+            <a href="/">Home</a>
+            <a href="/analysis">Analysis</a>
+            <a href="/dataset">Dataset</a>
+            <a href="/report">Report a Scam</a>
+            <a href="/about" class="active">About</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <section class="payment-card">
+            <h2>About ScamShield</h2>
+
+            <p class="description">
+                ScamShield is a student project designed to
+                demonstrate how online payment risks can be
+                checked before a user proceeds with a payment.
+            </p>
+
+            <h3 class="section-title">Our Objective</h3>
+            <p>
+                To help users identify known demonstration
+                identifiers and recognize situations where
+                additional verification is recommended.
+            </p>
+
+            <h3 class="section-title">Key Features</h3>
+            <ul class="feature-list">
+                <li>Payment receiver identifier checking</li>
+                <li>Amount-based verification warning</li>
+                <li>SQLite database for sample records</li>
+                <li>Analysis dashboard</li>
+                <li>Dataset viewing page</li>
+                <li>Simple and responsive user interface</li>
+            </ul>
+
+            <h3 class="section-title">Technology Used</h3>
+            <div class="tech-list">
+                <span>Python</span>
+                <span>Flask</span>
+                <span>SQLite</span>
+                <span>HTML</span>
+                <span>CSS</span>
+            </div>
+
+            <h3 class="section-title">Limitations</h3>
+            <p>
+                This prototype uses synthetic records and
+                predefined rules. It does not connect to bank
+                systems, verify live scam reports, or guarantee
+                that a payment is safe. It does not currently
+                use a trained machine learning model.
+            </p>
+        </section>
+    </main>
+
+    <footer>
+        ScamShield — Student Project Demonstration
+    </footer>
+</body>
+</html>
