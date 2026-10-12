@@ -1,229 +1,269 @@
 
-from flask import Flask, render_template, request
-import sqlite3
 import os
+import sqlite3
+from datetime import datetime
+
+from flask import Flask, render_template, request, redirect, url_for, flash
 
 app = Flask(__name__)
+app.secret_key = "scamshield-demo-secret-key"
 
 DB_PATH = os.path.join(app.root_path, "scamshield.db")
 
 
-# Connect to the SQLite database
 def get_db():
-    return sqlite3.connect(DB_PATH)
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
+    return connection
 
 
-# Create database tables
 def init_db():
-    with get_db() as conn:
+    """Create missing tables and add synthetic demo identifiers."""
+    connection = get_db()
+    cursor = connection.cursor()
 
-        # Table for demonstration scam identifiers
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS scam_accounts (
-                identifier TEXT PRIMARY KEY,
-                note TEXT NOT NULL
-            )
-        """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS scam_accounts (
+            identifier TEXT UNIQUE NOT NULL,
+            note TEXT,
+            reason TEXT
+        )
+    """)
 
-        # Add synthetic demo identifiers
-        conn.executemany("""
-            INSERT OR IGNORE INTO scam_accounts
-            (identifier, note)
-            VALUES (?, ?)
-        """, [
-            (
-                "scamdemo@upi",
-                "Synthetic test record - not a real report"
-            ),
-            (
-                "fraudtest@upi",
-                "Synthetic test record - not a real report"
-            )
-        ])
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS payment_checks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            receiver TEXT NOT NULL,
+            amount REAL NOT NULL,
+            method TEXT NOT NULL,
+            result TEXT NOT NULL,
+            checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
 
-        # Table for saving payment checks
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS payment_checks (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                receiver TEXT NOT NULL,
-                amount REAL NOT NULL,
-                method TEXT NOT NULL,
-                result TEXT NOT NULL,
-                checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS scam_reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            identifier TEXT NOT NULL,
+            reason TEXT NOT NULL,
+            status TEXT DEFAULT 'Unverified',
+            reported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        INSERT OR IGNORE INTO scam_accounts (identifier, note, reason)
+        VALUES (?, ?, ?)
+    """, (
+        "scamdemo@upi",
+        "Synthetic demo record",
+        "Demo suspicious identifier"
+    ))
+
+    cursor.execute("""
+        INSERT OR IGNORE INTO scam_accounts (identifier, note, reason)
+        VALUES (?, ?, ?)
+    """, (
+        "fraudtest@upi",
+        "Synthetic demo record",
+        "Demo fraud-test identifier"
+    ))
+
+    connection.commit()
+    connection.close()
 
 
-# Home page and payment checking
 @app.route("/", methods=["GET", "POST"])
 def home():
     result = None
 
     if request.method == "POST":
-
-        receiver = request.form.get(
-            "receiver", ""
-        ).strip().lower()
-
+        receiver = request.form.get("receiver", "").strip().lower()
+        amount_text = request.form.get("amount", "").strip()
         method = request.form.get(
-            "method", "UPI"
+            "payment_method",
+            request.form.get("method", "UPI")
         ).strip()
 
-        amount_text = request.form.get(
-            "amount", ""
-        ).strip()
-
-        # Validate input
-        try:
-            amount = float(amount_text)
-
-            if not receiver or amount <= 0:
-                raise ValueError
-
-        except ValueError:
+        if not receiver or not amount_text:
             result = {
-                "level": "error",
-                "title": "Invalid input",
-                "message": (
-                    "Enter a receiver ID and a valid "
-                    "positive amount."
-                )
+                "risk": "Invalid Input",
+                "message": "Please enter the receiver ID and amount."
             }
-
-            return render_template(
-                "index.html",
-                result=result
-            )
-
-        # Check receiver against demo database
-        with get_db() as conn:
-            match = conn.execute(
-                """
-                SELECT note
-                FROM scam_accounts
-                WHERE identifier = ?
-                """,
-                (receiver,)
-            ).fetchone()
-
-        # Rule 1: Known synthetic demo identifier
-        if match:
-            result = {
-                "level": "danger",
-                "title": "DEMO FLAGGED IDENTIFIER",
-                "message": (
-                    "This identifier matches a synthetic "
-                    "test record in our local database. "
-                    "Do not proceed in this demonstration. "
-                    "This is not a real scam report."
-                )
-            }
-
-        # Rule 2: High amount review
-        elif amount >= 25000:
-            result = {
-                "level": "warning",
-                "title": "Please verify the payment",
-                "message": (
-                    "This amount meets our demonstration "
-                    "review threshold. Amount alone does "
-                    "not prove fraud. Verify the receiver "
-                    "independently before paying."
-                )
-            }
-
-        # Rule 3: No demo match
         else:
-            result = {
-                "level": "safe",
-                "title": "No known demo match found",
-                "message": (
-                    "No matching identifier was found in "
-                    "our sample database. This does not "
-                    "mean the receiver is safe."
+            try:
+                amount = float(amount_text)
+                if amount <= 0:
+                    raise ValueError
+            except ValueError:
+                result = {
+                    "risk": "Invalid Input",
+                    "message": "Enter a valid amount greater than zero."
+                }
+            else:
+                connection = get_db()
+                cursor = connection.cursor()
+
+                cursor.execute(
+                    "SELECT identifier FROM scam_accounts WHERE lower(identifier) = ?",
+                    (receiver,)
                 )
-            }
+                known_account = cursor.fetchone()
 
-        # Add payment information to displayed result
-        result["receiver"] = receiver
-        result["amount"] = f"₹{amount:,.2f}"
-        result["method"] = method
+                if known_account:
+                    risk = "High Risk"
+                    message = (
+                        "This identifier matches a synthetic demo entry. "
+                        "This result is not proof of actual fraud."
+                    )
+                elif amount >= 25000:
+                    risk = "Warning"
+                    message = (
+                        "This is a high-value transaction. Verify the "
+                        "receiver independently before paying."
+                    )
+                else:
+                    risk = "Low Risk"
+                    message = (
+                        "No matching demo identifier was found. "
+                        "This does not guarantee the payment is safe."
+                    )
 
-        # Save the payment check in SQLite
-        with get_db() as conn:
-            conn.execute(
-                """
-                INSERT INTO payment_checks
-                (receiver, amount, method, result)
-                VALUES (?, ?, ?, ?)
-                """,
-                (
+                cursor.execute("""
+                    INSERT INTO payment_checks
+                    (receiver, amount, method, result, checked_at)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (
                     receiver,
                     amount,
                     method,
-                    result["title"]
-                )
-            )
+                    f"{risk}: {message}",
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                ))
 
-    return render_template(
-        "index.html",
-        result=result
-    )
+                connection.commit()
+                connection.close()
 
+                result = {
+                    "risk": risk,
+                    "message": message,
+                    "receiver": receiver,
+                    "amount": amount,
+                    "payment_method": method
+                }
 
-# Analysis dashboard
+    return render_template("index.html", result=result)
+
 
 @app.route("/analysis")
 def analysis():
-    with get_db() as conn:
-        total_records = conn.execute(
-            "SELECT COUNT(*) FROM scam_accounts"
-        ).fetchone()[0]
+    connection = get_db()
+    cursor = connection.cursor()
 
-        total_checks = conn.execute(
-            "SELECT COUNT(*) FROM payment_checks"
-        ).fetchone()[0]
+    cursor.execute("""
+        SELECT id, receiver, amount, method, result, checked_at
+        FROM payment_checks
+        ORDER BY id DESC
+        LIMIT 100
+    """)
+    checks = cursor.fetchall()
 
-        recent_checks = conn.execute("""
-            SELECT receiver, amount, method, result, checked_at
-            FROM payment_checks
-            ORDER BY id DESC
-            LIMIT 10
-        """).fetchall()
+    cursor.execute("SELECT COUNT(*) FROM payment_checks")
+    total_checks = cursor.fetchone()[0]
+
+    cursor.execute("""
+        SELECT COUNT(*) FROM payment_checks
+        WHERE lower(result) LIKE '%high risk%'
+    """)
+    high_risk_count = cursor.fetchone()[0]
+
+    cursor.execute("""
+        SELECT COUNT(*) FROM payment_checks
+        WHERE lower(result) LIKE '%warning%'
+    """)
+    warning_count = cursor.fetchone()[0]
+
+    connection.close()
 
     return render_template(
         "analysis.html",
-        total_records=total_records,
+        checks=checks,
         total_checks=total_checks,
-        recent_checks=recent_checks
+        high_risk_count=high_risk_count,
+        warning_count=warning_count
     )
 
-
-
-# Demo dataset page
 @app.route("/dataset")
 def dataset():
-    with get_db() as conn:
-        records = conn.execute(
-            """
-            SELECT identifier, note
-            FROM scam_accounts
-            """
-        ).fetchall()
+    connection = get_db()
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT identifier, note, reason
+        FROM scam_accounts
+        ORDER BY identifier
+    """)
+    accounts = cursor.fetchall()
+
+    cursor.execute("""
+        SELECT id, identifier, reason, status, reported_at
+        FROM scam_reports
+        ORDER BY id DESC
+    """)
+    reports = cursor.fetchall()
+
+    connection.close()
 
     return render_template(
         "dataset.html",
-        records=records
+        accounts=accounts,
+        reports=reports
     )
 
 
-# About page
+
+@app.route("/report", methods=["GET", "POST"])
+def report():
+    if request.method == "POST":
+        identifier = request.form.get("identifier", "").strip().lower()
+        reason = request.form.get("reason", "").strip()
+
+        if not identifier or not reason:
+            flash("Please enter the identifier and reason.")
+            return redirect(url_for("report"))
+
+        connection = get_db()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            INSERT INTO scam_reports (identifier, reason, status, reported_at)
+            VALUES (?, ?, ?, ?)
+        """, (
+            identifier,
+            reason,
+            "Unverified",
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        ))
+
+        connection.commit()
+        connection.close()
+
+        flash("Your report has been saved for review.")
+        return redirect(url_for("report"))
+
+    return render_template("report.html")
+
+
 @app.route("/about")
 def about():
     return render_template("about.html")
 
 
-# Start application
+@app.route("/health")
+def health():
+    return {"status": "ok", "application": "ScamShield"}
+
+
 if __name__ == "__main__":
     init_db()
     app.run(debug=True)

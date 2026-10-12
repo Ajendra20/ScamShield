@@ -22,12 +22,14 @@
     </header>
 
     <main class="container">
+
         <section class="payment-card">
             <h2>Sample Identifier Database</h2>
 
             <p class="description">
-                The table below displays the records stored in
-                the ScamShield SQLite database.
+                These synthetic identifiers are stored in the local
+                ScamShield database for demonstration purposes.
+                They are not verified real-world scam accounts.
             </p>
 
             <div class="table-wrapper">
@@ -39,9 +41,8 @@
                             <th>Record Description</th>
                         </tr>
                     </thead>
-
                     <tbody>
-                        {% for record in records %}
+                        {% for record in accounts %}
                         <tr>
                             <td>{{ loop.index }}</td>
                             <td>{{ record[0] }}</td>
@@ -49,9 +50,45 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="3">
-                                No records found.
-                            </td>
+                            <td colspan="3">No demo identifiers found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="payment-card">
+            <h2>Submitted Scam Reports</h2>
+
+            <p class="description">
+                Reports submitted through ScamShield are listed below.
+                A submission is not proof that the identifier is fraudulent.
+            </p>
+
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Sl. No.</th>
+                            <th>Identifier</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                            <th>Reported At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in reports %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ report[1] }}</td>
+                            <td>{{ report[2] }}</td>
+                            <td>{{ report[3] }}</td>
+                            <td>{{ report[4] }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5">No submitted reports found.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -59,11 +96,14 @@
             </div>
 
             <p class="notice">
-                Important: These are synthetic test records,
-                not genuine scam reports. A real deployment
-                would require reliable, verified data sources.
+                <strong>Demonstration notice:</strong>
+                The identifiers and reports are for project testing.
+                Reports marked Unverified have not been independently
+                confirmed. ScamShield does not use a trained
+                machine-learning model or verified real-world scam data.
             </p>
         </section>
+
     </main>
 
     <footer>
